@@ -23,6 +23,9 @@ class User(UserMixin, db.Model):
     # RBAC fields for Students
     student_id = db.Column(db.Integer, db.ForeignKey('students.id'), nullable=True)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f'<User {self.username}>'
 
@@ -35,6 +38,9 @@ class Department(db.Model):
     hod = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     students = db.relationship('Student', backref='department', lazy=True)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return f'<Department {self.name}>'
@@ -72,6 +78,9 @@ class Student(db.Model):
         present = sum(1 for r in records if r.status == 'present')
         return round((present / len(records)) * 100, 2)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f'<Student {self.roll_number}>'
 
@@ -92,6 +101,9 @@ class Attendance(db.Model):
         db.UniqueConstraint('student_id', 'date', 'period', name='unique_attendance'),
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f'<Attendance {self.student_id} {self.date} Period {self.period}>'
 
@@ -109,6 +121,9 @@ class TimetableEntry(db.Model):
         db.UniqueConstraint('department_id', 'year', 'day_of_week', 'period', name='unique_timetable_slot'),
     )
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
     def __repr__(self):
         return f'<TimetableEntry {self.day_of_week} Year {self.year} Period {self.period} - {self.subject}>'
 
@@ -121,6 +136,9 @@ class ActivityLog(db.Model):
     details = db.Column(db.Text)
     ip_address = db.Column(db.String(50))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __repr__(self):
         return f'<ActivityLog {self.action}>'

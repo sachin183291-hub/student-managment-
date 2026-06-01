@@ -122,7 +122,7 @@ def seed_data():
             email_part = name.lower().replace(' ', '.').replace("'", '')
             dept_code = random.choice(dept_codes)
             s = Student(
-                roll_number=roll,
+                roll_number =roll,
                 full_name=name,
                 email=f'{email_part}{i}@college.edu',
                 phone=f'9{random.randint(100000000, 999999999)}',

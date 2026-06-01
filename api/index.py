@@ -1,12 +1,10 @@
-from app import create_app
 import os
 import sys
 
-# Add parent directory to path
+# Add parent directory to path first so 'app' module can be found
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-app = create_app()
+from app import create_app
 
-# For Vercel WSGI handler
-def handler(event, context):
-    return app(event, context)
+# Create the WSGI Flask application instance
+app = create_app()

@@ -8,7 +8,13 @@ def create_app():
     
     # Configuration
     app.config['SECRET_KEY'] = 'smart_student_portal_secret_2024_#@!'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
+    
+    if os.environ.get('VERCEL') == '1':
+        # Vercel has a read-only filesystem except for /tmp
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/students.db'
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
+        
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
     
