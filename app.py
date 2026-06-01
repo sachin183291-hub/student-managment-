@@ -9,7 +9,13 @@ def create_app():
     # Configuration
     app.config['SECRET_KEY'] = 'smart_student_portal_secret_2024_#@!'
     
-    if os.environ.get('VERCEL') == '1':
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        # SQLAlchemy requires 'postgresql://' instead of 'postgres://'
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    elif os.environ.get('VERCEL') == '1':
         # Vercel has a read-only filesystem except for /tmp
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/students.db'
     else:
