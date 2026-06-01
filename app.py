@@ -1,10 +1,14 @@
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 from extensions import db, login_manager
 from models import User
 import os
 
 def create_app():
     app = Flask(__name__)
+    
+    # Fix for Vercel/Reverse Proxies to correctly generate HTTPS URLs and handle redirects
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
     # Configuration
     app.config['SECRET_KEY'] = 'smart_student_portal_secret_2024_#@!'
