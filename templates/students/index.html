@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Students{% endblock %}
+{% block content %}
+
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">Student Directory</h1>
+        <p class="page-subtitle">{{ students|length }} student(s) found</p>
+    </div>
+    <a href="{{ url_for('students.add') }}" class="btn-primary-custom">
+        <i class="bi bi-person-plus-fill"></i> Add Student
+    </a>
+</div>
+
+<!-- Filter Bar -->
+<form method="GET" class="filter-bar fade-in-up">
+    <div class="filter-group">
+        <label class="form-label">Search</label>
+        <input type="text" name="search" class="form-control-custom" placeholder="Name, roll no, email..."
+            value="{{ search }}" />
+    </div>
+    <div class="filter-group">
+        <label class="form-label">Department</label>
+        <select name="department" class="form-control-custom">
+            <option value="">All Departments</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}" {% if dept_filter==d.id|string %}selected{% endif %}>{{ d.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group" style="max-width:120px">
+        <label class="form-label">Year</label>
+        <select name="year" class="form-control-custom">
+            <option value="">All Years</option>
+            {% for y in [1,2,3,4] %}
+            <option value="{{ y }}" {% if year_filter==y|string %}selected{% endif %}>Year {{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group" style="max-width:130px">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-control-custom">
+            <option value="">All Status</option>
+            <option value="active" {% if status_filter=='active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if status_filter=='inactive' %}selected{% endif %}>Inactive</option>
+            <option value="graduated" {% if status_filter=='graduated' %}selected{% endif %}>Graduated</option>
+        </select>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+        <button type="submit" class="btn-primary-custom"><i class="bi bi-funnel-fill"></i> Filter</button>
+        <a href="{{ url_for('students.index') }}" class="btn-secondary-custom"><i class="bi bi-x-lg"></i></a>
+    </div>
+</form>
+
+<!-- Students Table -->
+<div class="card fade-in-up">
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Roll No</th>
+                    <th>Department</th>
+                    <th>Year</th>
+                    <th>CGPA</th>
+                    <th>Attendance</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                {% set pct = student.get_attendance_percentage() %}
+                <tr>
+                    <td style="color:var(--text-muted);font-size:12px">{{ loop.index }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:10px">
+                            <div class="student-avatar-sm">{{ student.full_name[0] }}</div>
+                            <div>
+                                <div style="font-weight:600">{{ student.full_name }}</div>
+                                <div style="font-size:11px;color:var(--text-muted)">{{ student.email }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><code
+                            style="font-size:12px;background:var(--bg-main);padding:3px 7px;border-radius:5px">{{ student.roll_number }}</code>
+                    </td>
+                    <td>{{ student.department.name if student.department else '—' }}</td>
+                    <td><span style="font-size:12px">Year {{ student.year }}{% if student.section %} / {{
+                            student.section }}{% endif %}</span></td>
+                    <td>
+                        <span
+                            style="font-weight:700;color:{% if student.cgpa >= 8 %}var(--success){% elif student.cgpa >= 6 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ student.cgpa or '—' }}
+                        </span>
+                    </td>
+                    <td style="min-width:120px">
+                        <div
+                            style="font-size:12px;margin-bottom:3px;font-weight:600;color:{% if pct >= 75 %}var(--success){% elif pct >= 60 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ pct }}%</div>
+                        <div class="att-bar" style="width:90px">
+                            <div class="att-bar-fill {% if pct < 60 %}danger{% elif pct < 75 %}warning{% endif %}"
+                                style="width:{{ pct }}%"></div>
+                        </div>
+                    </td>
+                    <td><span class="badge-custom badge-{{ student.status }}">{{ student.status.title() }}</span></td>
+                    <td>
+                        <div class="action-btns">
+                            <a href="{{ url_for('students.view', student_id=student.id) }}" class="btn-action view"
+                                title="View"><i class="bi bi-eye-fill"></i></a>
+                            <a href="{{ url_for('students.edit', student_id=student.id) }}" class="btn-action edit"
+                                title="Edit"><i class="bi bi-pencil-fill"></i></a>
+                            {% if current_user.role == 'admin' %}
+                            <form method="POST" action="{{ url_for('students.delete', student_id=student.id) }}"
+                                style="display:inline">
+                                <button type="submit" class="btn-action delete confirm-delete" title="Delete"><i
+                                        class="bi bi-trash-fill"></i></button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:50px;color:var(--text-muted)">
+                        <i class="bi bi-people" style="font-size:36px;display:block;margin-bottom:12px"></i>
+                        No students found. <a href="{{ url_for('students.add') }}" style="color:var(--primary)">Add your
+                            first student</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

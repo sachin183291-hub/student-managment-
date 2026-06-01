@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}My Attendance{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .stat-card-custom {
+        background: var(--bg-card);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: transform var(--transition), border-color var(--transition);
+    }
+    .stat-card-custom:hover {
+        transform: translateY(-2px);
+        border-color: var(--primary);
+    }
+    .stat-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+    }
+    .stat-icon-primary { background: rgba(79, 70, 229, 0.1); color: var(--primary); }
+    .stat-icon-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+    .stat-icon-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+    .stat-icon-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+    
+    .stat-info-custom {
+        display: flex;
+        flex-direction: column;
+    }
+    .stat-label-custom {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        letter-spacing: 0.05em;
+    }
+    .stat-value-custom {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.2;
+        margin-top: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">My Attendance History</h1>
+        <p class="page-subtitle">Track your presence, lates, and absences across subjects</p>
+    </div>
+    <a href="{{ url_for('students.view', student_id=student.id) }}" class="btn-secondary-custom">
+        <i class="bi bi-arrow-left"></i> Back to Profile
+    </a>
+</div>
+
+<!-- Attendance Stats Summary -->
+<div class="stats-card-grid fade-in-up">
+    <!-- Attendance % Card -->
+    <div class="stat-card-custom">
+        {% set pct = attendance_pct %}
+        {% set color_class = 'success' if pct >= 75 else ('warning' if pct >= 60 else 'danger') %}
+        <div class="stat-icon-wrapper stat-icon-{{ color_class }}">
+            <i class="bi bi-pie-chart-fill"></i>
+        </div>
+        <div class="stat-info-custom">
+            <span class="stat-label-custom">Overall Attendance</span>
+            <span class="stat-value-custom text-{{ color_class }}">{{ pct }}%</span>
+        </div>
+    </div>
+
+    <!-- Total Classes Card -->
+    <div class="stat-card-custom">
+        <div class="stat-icon-wrapper stat-icon-primary">
+            <i class="bi bi-calendar3"></i>
+        </div>
+        <div class="stat-info-custom">
+            <span class="stat-label-custom">Total Classes Held</span>
+            <span class="stat-value-custom">{{ total_records }}</span>
+        </div>
+    </div>
+
+    <!-- Present Card -->
+    <div class="stat-card-custom">
+        <div class="stat-icon-wrapper stat-icon-success">
+            <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div class="stat-info-custom">
+            <span class="stat-label-custom">Attended (Present + Late)</span>
+            <span class="stat-value-custom">{{ present_count + late_count }}</span>
+        </div>
+    </div>
+
+    <!-- Absent Card -->
+    <div class="stat-card-custom">
+        <div class="stat-icon-wrapper stat-icon-danger">
+            <i class="bi bi-x-circle-fill"></i>
+        </div>
+        <div class="stat-info-custom">
+            <span class="stat-label-custom">Absent Periods</span>
+            <span class="stat-value-custom text-danger">{{ absent_count }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card fade-in-up mb-4">
+    <div class="card-body py-3">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" style="font-size:12px; font-weight:600;">Filter by Subject</label>
+                <select name="subject" class="form-control-custom">
+                    <option value="">All Subjects</option>
+                    {% for subj in unique_subjects %}
+                    <option value="{{ subj }}" {% if subject_filter == subj %}selected{% endif %}>{{ subj }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" style="font-size:12px; font-weight:600;">Start Date</label>
+                <input type="date" name="start_date" class="form-control-custom" value="{{ start_date }}" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" style="font-size:12px; font-weight:600;">End Date</label>
+                <input type="date" name="end_date" class="form-control-custom" value="{{ end_date }}" />
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn-primary-custom w-100 justify-content-center">
+                    <i class="bi bi-filter"></i> Apply
+                </button>
+                <a href="{{ url_for('students.my_attendance') }}" class="btn-secondary-custom" title="Reset Filters">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Detailed Table Card -->
+<div class="card fade-in-up">
+    <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-list-stars"></i> Detailed Attendance Records</h3>
+        <span class="badge-role-student" style="font-weight:600">{{ attendance_records|length }} entries matched</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Day</th>
+                    <th>Period</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rec in attendance_records %}
+                <tr>
+                    <td class="fw-600">{{ rec.date.strftime('%d %b %Y') }}</td>
+                    <td style="color:var(--text-secondary); font-size:13px">{{ rec.date.strftime('%A') }}</td>
+                    <td class="fw-700" style="color:var(--primary);">P{{ rec.period }}</td>
+                    <td>{{ rec.subject }}</td>
+                    <td>
+                        <span class="badge-custom badge-{{ rec.status }}">{{ rec.status.title() }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:48px; color:var(--text-muted);">
+                        <i class="bi bi-calendar2-x-fill" style="font-size:36px; display:block; margin-bottom:12px; color:var(--text-muted);"></i>
+                        No attendance records found matching the filters.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

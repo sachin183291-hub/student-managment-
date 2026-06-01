@@ -1,0 +1,8 @@
+.venv/
+venv/
+__pycache__/
+instance/
+*.pyc
+.gemini/
+.idea/
+.vscode/

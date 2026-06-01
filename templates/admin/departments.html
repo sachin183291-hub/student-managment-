@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Departments{% endblock %}
+{% block content %}
+
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">Manage Departments</h1>
+        <p class="page-subtitle">{{ departments|length }} department(s) registered</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Add Form -->
+    <div class="col-lg-4">
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-plus-circle-fill"></i> Add Department</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="form-group">
+                        <label class="form-label">Department Name *</label>
+                        <input type="text" name="name" class="form-control-custom"
+                            placeholder="e.g., Computer Science Engineering" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Department Code *</label>
+                        <input type="text" name="code" class="form-control-custom" placeholder="e.g., CSE"
+                            maxlength="10" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Head of Department</label>
+                        <input type="text" name="hod" class="form-control-custom" placeholder="Dr. Name" />
+                    </div>
+                    <button type="submit" class="btn-primary-custom w-100 justify-content-center">
+                        <i class="bi bi-plus-lg"></i> Add Department
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department List -->
+    <div class="col-lg-8">
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-building-fill"></i> All Departments</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Department</th>
+                            <th>Code</th>
+                            <th>HOD</th>
+                            <th>Students</th>
+                            <th>Added</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept in departments %}
+                        <tr>
+                            <td style="color:var(--text-muted);font-size:12px">{{ loop.index }}</td>
+                            <td style="font-weight:600">{{ dept.name }}</td>
+                            <td>
+                                <span
+                                    style="background:rgba(79,70,229,0.1);color:var(--primary);padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:0.04em">
+                                    {{ dept.code }}
+                                </span>
+                            </td>
+                            <td style="color:var(--text-secondary);font-size:13px">{{ dept.hod or '—' }}</td>
+                            <td>
+                                <span style="font-weight:700;color:var(--primary)">{{ dept.students|length }}</span>
+                            </td>
+                            <td style="font-size:12px;color:var(--text-muted)">{{ dept.created_at.strftime('%d %b %Y')
+                                if dept.created_at else '—' }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('admin.delete_department', dept_id=dept.id) }}"
+                                    style="display:inline">
+                                    <button type="submit" class="btn-action delete confirm-delete"
+                                        title="Delete Department">
+                                        <i class="bi bi-trash-fill"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" style="text-align:center;padding:40px;color:var(--text-muted)">
+                                <i class="bi bi-building" style="font-size:36px;display:block;margin-bottom:12px"></i>
+                                No departments yet. Add one using the form.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

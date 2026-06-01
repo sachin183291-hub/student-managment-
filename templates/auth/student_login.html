@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Student Login{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page">
+    <div class="auth-card fade-in-up">
+        <div class="auth-logo">
+            <div class="logo-icon"><i class="bi bi-person-badge-fill"></i></div>
+            <div class="logo-text">
+                <span class="logo-title">TrackMyClass</span>
+                <span class="logo-sub">Student Portal</span>
+            </div>
+        </div>
+        <h1 class="auth-title">Student Login 🎓</h1>
+        <p class="auth-sub">Sign in with your Roll Number to access your profile</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert"
+            style="border-radius:10px;font-size:13px;">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" class="auth-form">
+            <div class="form-group">
+                <label class="form-label">Roll Number</label>
+                <div style="position:relative">
+                    <i class="bi bi-person"
+                        style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.4)"></i>
+                    <input type="text" name="username" class="form-control-custom" placeholder="e.g. 2024CSE001"
+                        style="padding-left:36px" required />
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <div style="position:relative">
+                    <i class="bi bi-lock"
+                        style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.4)"></i>
+                    <input type="password" name="password" id="passwordField" class="form-control-custom"
+                        placeholder="Enter your password" style="padding-left:36px;padding-right:42px" required />
+                    <button type="button" onclick="togglePwd()"
+                        style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer">
+                        <i class="bi bi-eye" id="eyeIcon"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;gap:8px">
+                <input type="checkbox" name="remember" id="remember" style="accent-color:var(--primary)" />
+                <label for="remember" style="font-size:12.5px;color:rgba(255,255,255,0.6);cursor:pointer">Remember
+                    me</label>
+            </div>
+            <button type="submit" class="btn-primary-custom w-100 justify-content-center" style="padding:13px">
+                <i class="bi bi-box-arrow-in-right"></i> Sign In
+            </button>
+        </form>
+
+        <div class="auth-link">
+            Are you a Teacher/Admin? <a href="{{ url_for('auth.login') }}">Staff Login</a>
+        </div>
+    </div>
+</div>
+<script>
+    function togglePwd() {
+        const f = document.getElementById('passwordField');
+        const i = document.getElementById('eyeIcon');
+        f.type = f.type === 'password' ? 'text' : 'password';
+        i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    }
+</script>
+{% endblock %}

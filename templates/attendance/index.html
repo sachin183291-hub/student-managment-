@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Attendance{% endblock %}
+{% block content %}
+
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">Attendance Management</h1>
+        <p class="page-subtitle">Track and manage student attendance</p>
+    </div>
+    <a href="{{ url_for('attendance.mark') }}" class="btn-primary-custom">
+        <i class="bi bi-check2-square"></i> Mark Attendance
+    </a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <a href="{{ url_for('attendance.mark') }}" style="text-decoration:none">
+            <div class="report-card fade-in-up" style="border-top:3px solid var(--primary)">
+                <div class="report-card-icon" style="background:rgba(79,70,229,0.1);color:var(--primary)"><i
+                        class="bi bi-check2-square"></i></div>
+                <h3 style="font-size:16px;font-weight:700">Mark Attendance</h3>
+                <p style="font-size:13px;color:var(--text-secondary)">Mark attendance for a class by department, year,
+                    and subject</p>
+                <span class="btn-primary-custom btn-sm">Open →</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('attendance.view') }}" style="text-decoration:none">
+            <div class="report-card fade-in-up delay-1" style="border-top:3px solid var(--secondary)">
+                <div class="report-card-icon" style="background:rgba(6,182,212,0.1);color:var(--secondary)"><i
+                        class="bi bi-table"></i></div>
+                <h3 style="font-size:16px;font-weight:700">View Records</h3>
+                <p style="font-size:13px;color:var(--text-secondary)">Browse, filter, and search all attendance records
+                </p>
+                <span class="btn-secondary-custom btn-sm">Browse →</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('attendance.report') }}" style="text-decoration:none">
+            <div class="report-card fade-in-up delay-2" style="border-top:3px solid var(--success)">
+                <div class="report-card-icon" style="background:rgba(16,185,129,0.1);color:var(--success)"><i
+                        class="bi bi-graph-up-arrow"></i></div>
+                <h3 style="font-size:16px;font-weight:700">Attendance Report</h3>
+                <p style="font-size:13px;color:var(--text-secondary)">View attendance summary for all students with risk
+                    flags</p>
+                <span class="btn-secondary-custom btn-sm">View Report →</span>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}

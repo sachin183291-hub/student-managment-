@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% block title %}Mark Period Attendance{% endblock %}
+
+{% block extra_css %}
+<style>
+  .period-timeline {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .period-card {
+    background: var(--card-bg);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .period-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  }
+  .period-card.active {
+    border-color: var(--primary);
+    background: rgba(79, 70, 229, 0.04);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+  .period-card.marked {
+    border-color: var(--success);
+  }
+  .period-card.marked::after {
+    content: '✓';
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    font-size: 10px;
+    font-weight: 900;
+    color: white;
+    background: var(--success);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .period-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: var(--bg-main);
+  }
+  .period-num {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+  }
+  .period-card.active .period-num {
+    color: var(--primary);
+  }
+  .period-subject {
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 4px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .period-status-badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .status-badge-pending {
+    background: var(--bg-main);
+    color: var(--text-secondary);
+  }
+  .status-badge-marked {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+  }
+  .status-badge-break {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+  }
+
+  .mark-workspace {
+    display: none;
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header fade-in-up">
+  <div>
+    <h1 class="page-title">Mark Attendance</h1>
+    <p class="page-subtitle">Timetable-integrated period-wise attendance marking</p>
+  </div>
+  <a href="{{ url_for('attendance.index') }}" class="btn-secondary-custom">
+    <i class="bi bi-arrow-left"></i> Back
+  </a>
+</div>
+
+<!-- Step 1: Filter/Class Selection -->
+<div class="card fade-in-up mb-4">
+  <div class="card-header">
+    <h3 class="card-title"><i class="bi bi-sliders"></i> Step 1: Select Class & Date</h3>
+  </div>
+  <div class="card-body">
+    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end">
+      <div style="flex:1.5; min-width:200px">
+        <label class="form-label">Department *</label>
+        <select id="deptSelect" class="form-control-custom" required {% if current_user.role == 'teacher' %}disabled{% endif %}>
+          <option value="">Select Department</option>
+          {% for d in departments %}
+          <option value="{{ d.id }}" {% if current_user.role == 'teacher' and current_user.department_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+          {% endfor %}
+        </select>
+        {% if current_user.role == 'teacher' %}
+        <input type="hidden" id="hiddenDeptSelect" value="{{ current_user.department_id }}">
+        {% endif %}
+      </div>
+      <div style="width:130px">
+        <label class="form-label">Year *</label>
+        <select id="yearSelect" class="form-control-custom" required {% if current_user.role == 'teacher' %}disabled{% endif %}>
+          <option value="">Year</option>
+          {% for y in [1, 2, 3, 4] %}
+          <option value="{{ y }}" {% if current_user.role == 'teacher' and current_user.year == y %}selected{% endif %}>Year {{ y }}</option>
+          {% endfor %}
+        </select>
+        {% if current_user.role == 'teacher' %}
+        <input type="hidden" id="hiddenYearSelect" value="{{ current_user.year }}">
+        {% endif %}
+      </div>
+      <div style="width:180px">
+        <label class="form-label">Date *</label>
+        <input type="date" id="attDate" class="form-control-custom" value="{{ today.strftime('%Y-%m-%d') }}" required />
+      </div>
+      <button type="button" id="fetchTimetableBtn" class="btn-primary-custom">
+        <i class="bi bi-calendar-range"></i> Load Timetable
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Timetable Period Selection -->
+<div class="card fade-in-up mb-4" id="timetableSection" style="display:none">
+  <div class="card-header">
+    <h3 class="card-title"><i class="bi bi-clock-history"></i> Step 2: Select Period</h3>
+    <span class="badge-role-teacher" id="dayNameLabel" style="font-weight:600">Monday Schedule</span>
+  </div>
+  <div class="card-body" style="padding-top: 8px;">
+    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+      Select the period you want to mark attendance for. Green indicates slots already marked for this day.
+    </p>
+    <div class="period-timeline" id="periodTimelineContainer">
+      <!-- Generated dynamically -->
+    </div>
+  </div>
+</div>
+
+<!-- Step 3: Student Attendance Grid -->
+<form method="POST" id="attendanceForm" class="mark-workspace">
+  <!-- Hidden form inputs -->
+  <input type="hidden" name="department_id" id="formDept" />
+  <input type="hidden" name="year" id="formYear" />
+  <input type="hidden" name="date" id="formDate" />
+  <input type="hidden" name="period" id="formPeriod" />
+  <input type="hidden" name="subject" id="formSubject" />
+
+  <div class="card fade-in-up">
+    <div class="card-header" style="background:var(--bg-main)">
+      <div>
+        <h3 class="card-title" style="font-size: 15px; font-weight: 700; color: var(--primary);" id="markingTitle">
+          <i class="bi bi-check2-all"></i> Step 3: Mark Attendance
+        </h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;" id="markingSubtitle">
+          Department: CSE | Period 1: Data Structures
+        </p>
+      </div>
+      <div style="display:flex; gap:8px">
+        <button type="button" id="markAllPresent" class="btn-secondary-custom btn-sm" style="color:var(--success); border-color:var(--success)">
+          <i class="bi bi-check-all"></i> All Present
+        </button>
+        <button type="button" id="markAllAbsent" class="btn-secondary-custom btn-sm" style="color:var(--danger); border-color:var(--danger)">
+          <i class="bi bi-x-lg"></i> All Absent
+        </button>
+      </div>
+    </div>
+
+    <div id="studentsContainer">
+      <!-- Loaded dynamically via AJAX -->
+    </div>
+
+    <div style="padding:16px 20px; border-top:1px solid var(--border); display:flex; gap:10px">
+      <button type="submit" class="btn-primary-custom">
+        <i class="bi bi-save-fill"></i> Save Attendance
+      </button>
+      <button type="button" class="btn-secondary-custom" onclick="cancelMarking()">Cancel</button>
+    </div>
+  </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let timetableSlots = [];
+  let selectedSlot = null;
+
+  document.getElementById('fetchTimetableBtn').addEventListener('click', loadTimetable);
+  document.getElementById('deptSelect').addEventListener('change', resetWorkspaces);
+  document.getElementById('yearSelect').addEventListener('change', resetWorkspaces);
+  document.getElementById('attDate').addEventListener('change', resetWorkspaces);
+
+  function resetWorkspaces() {
+    document.getElementById('timetableSection').style.display = 'none';
+    document.getElementById('attendanceForm').style.display = 'none';
+    selectedSlot = null;
+  }
+
+  async function loadTimetable() {
+    const dept = document.getElementById('deptSelect').value;
+    const year = document.getElementById('yearSelect').value;
+    const dateVal = document.getElementById('attDate').value;
+
+    if (!dept || !year || !dateVal) {
+      alert('Please fill in Department, Year, and Date first!');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/attendance/timetable-slots?department_id=${dept}&year=${year}&date=${dateVal}`);
+      timetableSlots = await res.json();
+
+      if (timetableSlots.length === 0) {
+        alert('No timetable slots found. Please configure the timetable for this department and year first.');
+        return;
+      }
+
+      // Find day name from date
+      const parsedDate = new Date(dateVal);
+      const dayName = parsedDate.toLocaleDateString('en-US', { weekday: 'long' });
+      document.getElementById('dayNameLabel').textContent = dayName + ' Timetable';
+
+      // Render timeline cards
+      const container = document.getElementById('periodTimelineContainer');
+      container.innerHTML = timetableSlots.map(slot => {
+        const isBreak = slot.subject === 'Lunch Break' || slot.subject === 'Free Period';
+        const cardClass = slot.marked ? 'marked' : '';
+        const disabledAttr = isBreak ? 'disabled' : '';
+        
+        let badgeHtml = `<span class="period-status-badge status-badge-pending">Pending</span>`;
+        if (slot.marked) {
+          badgeHtml = `<span class="period-status-badge status-badge-marked">Marked</span>`;
+        } else if (isBreak) {
+          badgeHtml = `<span class="period-status-badge status-badge-break">Break</span>`;
+        }
+
+        return `
+          <div class="period-card ${cardClass} ${disabledAttr}" id="period-card-${slot.period}" onclick="selectPeriod(${slot.period}, '${escapeHtml(slot.subject)}', ${isBreak})">
+            <div class="period-num">Period ${slot.period}</div>
+            <div class="period-subject" title="${escapeHtml(slot.subject)}">${slot.subject}</div>
+            ${badgeHtml}
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('timetableSection').style.display = 'block';
+      document.getElementById('timetableSection').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('attendanceForm').style.display = 'none';
+
+    } catch (err) {
+      console.error(err);
+      alert('Error fetching timetable slots.');
+    }
+  }
+
+  async function selectPeriod(period, subject, isBreak) {
+    if (isBreak) {
+      alert("It's a " + subject + "! Attendance is not tracked for this period.");
+      return;
+    }
+
+    // Toggle active card style
+    document.querySelectorAll('.period-card').forEach(c => c.classList.remove('active'));
+    document.getElementById(`period-card-${period}`).classList.add('active');
+
+    selectedSlot = { period, subject };
+
+    // Fill hidden form fields
+    const dept = document.getElementById('deptSelect').value;
+    const year = document.getElementById('yearSelect').value;
+    const dateVal = document.getElementById('attDate').value;
+
+    document.getElementById('formDept').value = dept;
+    document.getElementById('formYear').value = year;
+    document.getElementById('formDate').value = dateVal;
+    document.getElementById('formPeriod').value = period;
+    document.getElementById('formSubject').value = subject;
+
+    // Load active students with any existing marked status
+    const markingTitle = document.getElementById('markingTitle');
+    const markingSubtitle = document.getElementById('markingSubtitle');
+    const deptText = document.getElementById('deptSelect').options[document.getElementById('deptSelect').selectedIndex].text;
+
+    markingTitle.innerHTML = `<i class="bi bi-pencil-square"></i> Step 3: Mark Attendance for Period ${period}`;
+    markingSubtitle.textContent = `${deptText} (Year ${year}) — Subject: ${subject}`;
+
+    const container = document.getElementById('studentsContainer');
+    container.innerHTML = `
+      <div style="text-align:center; padding:30px; color:var(--text-muted)">
+        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+        <span class="ms-2">Loading students list...</span>
+      </div>
+    `;
+
+    document.getElementById('attendanceForm').style.display = 'block';
+    document.getElementById('attendanceForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    try {
+      const res = await fetch(`/attendance/get-students?department_id=${dept}&year=${year}&date=${dateVal}&period=${period}`);
+      const students = await res.json();
+
+      if (students.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:40px; color:var(--text-muted)">
+            <i class="bi bi-people" style="font-size:36px; display:block; margin-bottom:12px"></i>
+            No active students found in this department and year.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = students.map(s => `
+        <div class="att-student-row">
+          <div class="student-avatar-sm">${s.name[0]}</div>
+          <div>
+            <div style="font-weight:600; font-size:14px">${s.name}</div>
+            <div style="font-size:11px; color:var(--text-muted)">${s.roll}</div>
+          </div>
+          <div class="att-radio-group">
+            <label class="att-radio present-opt">
+              <input type="radio" name="status_${s.id}" value="present" ${s.status === 'present' ? 'checked' : ''}> ✓ Present
+            </label>
+            <label class="att-radio absent-opt">
+              <input type="radio" name="status_${s.id}" value="absent" ${s.status === 'absent' ? 'checked' : ''}> ✗ Absent
+            </label>
+            <label class="att-radio late-opt">
+              <input type="radio" name="status_${s.id}" value="late" ${s.status === 'late' ? 'checked' : ''}> ⏱ Late
+            </label>
+          </div>
+        </div>
+      `).join('');
+
+    } catch (err) {
+      console.error(err);
+      container.innerHTML = `
+        <div style="text-align:center; padding:30px; color:var(--danger)">
+          <i class="bi bi-exclamation-triangle-fill" style="font-size:24px; display:block; margin-bottom:8px"></i>
+          Error loading student directory.
+        </div>
+      `;
+    }
+  }
+
+  function cancelMarking() {
+    document.getElementById('attendanceForm').style.display = 'none';
+    document.querySelectorAll('.period-card').forEach(c => c.classList.remove('active'));
+    selectedSlot = null;
+  }
+
+  // Mass action helpers
+  document.getElementById('markAllPresent').addEventListener('click', () => {
+    document.querySelectorAll('#studentsContainer input[type="radio"][value="present"]').forEach(r => r.checked = true);
+  });
+
+  document.getElementById('markAllAbsent').addEventListener('click', () => {
+    document.querySelectorAll('#studentsContainer input[type="radio"][value="absent"]').forEach(r => r.checked = true);
+  });
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}Edit {{ student.full_name }}{% endblock %}
+{% block content %}
+
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">Edit Student</h1>
+        <p class="page-subtitle">{{ student.roll_number }} — {{ student.full_name }}</p>
+    </div>
+    <a href="{{ url_for('students.view', student_id=student.id) }}" class="btn-secondary-custom">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+</div>
+
+<div class="card fade-in-up">
+    <div class="card-body">
+        <form method="POST">
+            <div
+                style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;margin-bottom:24px">
+                <div>
+                    <h5
+                        style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--primary);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--primary)">
+                        <i class="bi bi-person-fill"></i> Basic Info
+                    </h5>
+                    <div class="form-group">
+                        <label class="form-label">Roll Number</label>
+                        <input type="text" class="form-control-custom" value="{{ student.roll_number }}" disabled
+                            style="opacity:0.6" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Full Name *</label>
+                        <input type="text" name="full_name" class="form-control-custom" value="{{ student.full_name }}"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email *</label>
+                        <input type="email" name="email" class="form-control-custom" value="{{ student.email }}"
+                            required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" name="phone" class="form-control-custom" value="{{ student.phone or '' }}" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date of Birth</label>
+                        <input type="date" name="dob" class="form-control-custom"
+                            value="{{ student.dob.strftime('%Y-%m-%d') if student.dob else '' }}" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-control-custom">
+                            {% for s in ['active','inactive','graduated'] %}
+                            <option value="{{ s }}" {% if student.status==s %}selected{% endif %}>{{ s.title() }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <h5
+                        style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--secondary);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--secondary)">
+                        <i class="bi bi-building-fill"></i> Academic Info
+                    </h5>
+                    <div class="form-group">
+                        <label class="form-label">Department *</label>
+                        <select name="department_id" class="form-control-custom" required>
+                            {% for d in departments %}
+                            <option value="{{ d.id }}" {% if student.department_id==d.id %}selected{% endif %}>{{ d.name
+                                }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Year *</label>
+                        <select name="year" class="form-control-custom" required>
+                            {% for y in [1,2,3,4] %}
+                            <option value="{{ y }}" {% if student.year==y %}selected{% endif %}>Year {{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Section</label>
+                        <select name="section" class="form-control-custom">
+                            <option value="">None</option>
+                            {% for s in ['A','B','C','D'] %}
+                            <option value="{{ s }}" {% if student.section==s %}selected{% endif %}>Section {{ s }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CGPA</label>
+                        <input type="number" name="cgpa" class="form-control-custom" value="{{ student.cgpa or '' }}"
+                            min="0" max="10" step="0.01" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Address</label>
+                        <textarea name="address" class="form-control-custom"
+                            rows="3">{{ student.address or '' }}</textarea>
+                    </div>
+                </div>
+                <div>
+                    <h5
+                        style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--success);margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid var(--success)">
+                        <i class="bi bi-person-hearts"></i> Guardian Info
+                    </h5>
+                    <div class="form-group">
+                        <label class="form-label">Guardian Name</label>
+                        <input type="text" name="guardian_name" class="form-control-custom"
+                            value="{{ student.guardian_name or '' }}" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Guardian Phone</label>
+                        <input type="tel" name="guardian_phone" class="form-control-custom"
+                            value="{{ student.guardian_phone or '' }}" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Guardian Email</label>
+                        <input type="email" name="guardian_email" class="form-control-custom"
+                            value="{{ student.guardian_email or '' }}" />
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;padding-top:16px;border-top:1px solid var(--border)">
+                <button type="submit" class="btn-primary-custom"><i class="bi bi-check-lg"></i> Save Changes</button>
+                <a href="{{ url_for('students.view', student_id=student.id) }}" class="btn-secondary-custom">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

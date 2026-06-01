@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Attendance Records{% endblock %}
+{% block content %}
+
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">Attendance Records</h1>
+        <p class="page-subtitle">{{ records|length }} record(s) shown</p>
+    </div>
+    <a href="{{ url_for('attendance.mark') }}" class="btn-primary-custom">
+        <i class="bi bi-check2-square"></i> Mark New
+    </a>
+</div>
+
+<form method="GET" class="filter-bar fade-in-up">
+    <div class="filter-group">
+        <label class="form-label">Department</label>
+        <select name="department" class="form-control-custom">
+            <option value="">All</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}" {% if dept_filter==d.id|string %}selected{% endif %}>{{ d.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group">
+        <label class="form-label">Subject</label>
+        <select name="subject" class="form-control-custom">
+            <option value="">All Subjects</option>
+            {% for s in subjects %}
+            <option value="{{ s }}" {% if subject_filter==s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="filter-group" style="max-width:160px">
+        <label class="form-label">From Date</label>
+        <input type="date" name="date_from" class="form-control-custom" value="{{ date_from }}" />
+    </div>
+    <div class="filter-group" style="max-width:160px">
+        <label class="form-label">To Date</label>
+        <input type="date" name="date_to" class="form-control-custom" value="{{ date_to }}" />
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end">
+        <button type="submit" class="btn-primary-custom"><i class="bi bi-funnel-fill"></i> Filter</button>
+        <a href="{{ url_for('attendance.view') }}" class="btn-secondary-custom"><i class="bi bi-x-lg"></i></a>
+    </div>
+</form>
+
+<div class="card fade-in-up">
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Roll No</th>
+                    <th>Subject</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for att, student in records %}
+                <tr>
+                    <td style="color:var(--text-muted);font-size:12px">{{ loop.index }}</td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <div class="student-avatar-sm" style="width:28px;height:28px;font-size:11px">{{
+                                student.full_name[0] }}</div>
+                            {{ student.full_name }}
+                        </div>
+                    </td>
+                    <td><code
+                            style="font-size:11px;background:var(--bg-main);padding:2px 6px;border-radius:4px">{{ student.roll_number }}</code>
+                    </td>
+                    <td>{{ att.subject }}</td>
+                    <td style="color:var(--text-secondary)">{{ att.date.strftime('%d %b %Y') }}</td>
+                    <td><span class="badge-custom badge-{{ att.status }}">{{ att.status.title() }}</span></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center;padding:50px;color:var(--text-muted)">
+                        <i class="bi bi-calendar-x" style="font-size:36px;display:block;margin-bottom:12px"></i>
+                        No attendance records found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

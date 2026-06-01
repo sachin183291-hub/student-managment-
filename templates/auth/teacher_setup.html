@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Teacher Setup{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card fade-in-up">
+        <div class="auth-logo">
+            <div class="logo-icon"><i class="bi bi-person-workspace"></i></div>
+            <div class="logo-text">
+                <span class="logo-title">Teacher Setup</span>
+                <span class="logo-sub">Configure your class</span>
+            </div>
+        </div>
+        <h1 class="auth-title">Welcome, {{ current_user.full_name }}! 👋</h1>
+        <p class="auth-sub">Please select your assigned class to continue to your dashboard.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for cat, msg in messages %}
+        <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" role="alert"
+            style="border-radius:10px;font-size:13px;">
+            {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.teacher_setup') }}" class="auth-form">
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department_id" class="form-control-custom" style="padding-left:12px" required>
+                    <option value="">-- Select Department --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Year</label>
+                <select name="year" class="form-control-custom" style="padding-left:12px" required>
+                    <option value="">-- Select Year --</option>
+                    <option value="1">Year 1</option>
+                    <option value="2">Year 2</option>
+                    <option value="3">Year 3</option>
+                    <option value="4">Year 4</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Section (Class)</label>
+                <input type="text" name="section" class="form-control-custom" placeholder="e.g. A, B, C"
+                    style="padding-left:12px" required />
+            </div>
+            
+            <button type="submit" class="btn-primary-custom w-100 justify-content-center" style="padding:13px; margin-top: 15px;">
+                <i class="bi bi-check-circle"></i> Save Configuration
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Attendance Summary Report{% endblock %}
+{% block content %}
+
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">Attendance Summary Report</h1>
+        <p class="page-subtitle">Attendance percentage for all active students</p>
+    </div>
+    <a href="{{ url_for('reports.download_pdf') }}?type=attendance" class="btn-primary-custom">
+        <i class="bi bi-file-earmark-pdf-fill"></i> Export PDF
+    </a>
+</div>
+
+<!-- Summary stats -->
+{% set good = report_data | selectattr('risk', 'equalto', 'Low') | list %}
+{% set medium = report_data | selectattr('risk', 'equalto', 'Medium') | list %}
+{% set high = report_data | selectattr('risk', 'equalto', 'High') | list %}
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card fade-in-up" style="--card-color:#10b981">
+            <div class="stat-icon green"><i class="bi bi-check-circle-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ good|length }}</div>
+                <div class="stat-label">Good (≥75%)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card fade-in-up delay-1" style="--card-color:#f59e0b">
+            <div class="stat-icon amber"><i class="bi bi-exclamation-circle-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ medium|length }}</div>
+                <div class="stat-label">Warning (60-74%)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card fade-in-up delay-2" style="--card-color:#ef4444">
+            <div class="stat-icon red"><i class="bi bi-x-circle-fill"></i></div>
+            <div>
+                <div class="stat-value">{{ high|length }}</div>
+                <div class="stat-label">Critical (&lt;60%)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card fade-in-up">
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Roll No</th>
+                    <th>Dept</th>
+                    <th>Total Classes</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Percentage</th>
+                    <th>Risk</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in report_data %}
+                <tr>
+                    <td style="color:var(--text-muted);font-size:12px">{{ loop.index }}</td>
+                    <td>
+                        <a href="{{ url_for('students.view', student_id=item.student.id) }}"
+                            style="text-decoration:none;color:var(--text-primary);font-weight:600">
+                            {{ item.student.full_name }}
+                        </a>
+                    </td>
+                    <td><code
+                            style="font-size:11px;background:var(--bg-main);padding:2px 6px;border-radius:4px">{{ item.student.roll_number }}</code>
+                    </td>
+                    <td style="font-size:12px;color:var(--text-secondary)">{{ item.student.department.name if
+                        item.student.department else '—' }}</td>
+                    <td style="text-align:center">{{ item.student.attendance_records|length }}</td>
+                    <td style="text-align:center;color:var(--success);font-weight:600">{{
+                        item.student.attendance_records | selectattr('status','equalto','present') | list | length }}
+                    </td>
+                    <td style="text-align:center;color:var(--danger);font-weight:600">{{ item.student.attendance_records
+                        | rejectattr('status','equalto','present') | list | length }}</td>
+                    <td style="min-width:140px">
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <div class="att-bar" style="flex:1">
+                                <div class="att-bar-fill {% if item.pct < 60 %}danger{% elif item.pct < 75 %}warning{% endif %}"
+                                    style="width:{{ item.pct }}%"></div>
+                            </div>
+                            <span
+                                style="font-weight:700;font-size:12px;min-width:38px;color:{% if item.pct >= 75 %}var(--success){% elif item.pct >= 60 %}var(--warning){% else %}var(--danger){% endif %}">{{
+                                item.pct }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span
+                            class="badge-custom badge-{% if item.risk == 'Low' %}good{% elif item.risk == 'Medium' %}warning{% else %}critical{% endif %}">
+                            {{ item.risk }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">No student data</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

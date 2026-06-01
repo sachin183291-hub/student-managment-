@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block content %}
+
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">{% if current_user.role == 'student' %}My Profile{% else %}Student Profile{% endif %}</h1>
+        <p class="page-subtitle">Detailed view for {{ student.full_name }}</p>
+    </div>
+    {% if current_user.role != 'student' %}
+    <div style="display:flex;gap:8px">
+        <a href="{{ url_for('students.edit', student_id=student.id) }}" class="btn-secondary-custom"><i
+                class="bi bi-pencil-fill"></i> Edit</a>
+        <a href="{{ url_for('students.index') }}" class="btn-secondary-custom"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row g-3">
+    <!-- Left: Profile Card -->
+    <div class="col-lg-4">
+        <div class="card fade-in-up" style="text-align:center">
+            <div class="card-body" style="padding:32px 20px">
+                <div
+                    style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary),var(--secondary));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:#fff;margin:0 auto 16px">
+                    {{ student.full_name[0].upper() }}
+                </div>
+                <h2 style="font-size:18px;font-weight:700;margin-bottom:4px">{{ student.full_name }}</h2>
+                <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px">{{ student.email }}</p>
+                <code
+                    style="background:var(--bg-main);padding:5px 12px;border-radius:6px;font-size:13px">{{ student.roll_number }}</code>
+                <div style="margin-top:16px">
+                    <span class="badge-custom badge-{{ student.status }}">{{ student.status.title() }}</span>
+                </div>
+                <!-- Attendance Ring -->
+                <div style="margin:24px auto;width:120px;position:relative">
+                    <canvas id="attRing" width="120" height="120"></canvas>
+                    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+                        <div style="font-size:20px;font-weight:800;color:var(--text-primary)">{{ attendance_pct }}%
+                        </div>
+                        <div style="font-size:10px;color:var(--text-muted)">Attendance</div>
+                    </div>
+                </div>
+                <div
+                    style="font-size:13px;color:{% if attendance_pct >= 75 %}var(--success){% elif attendance_pct >= 60 %}var(--warning){% else %}var(--danger){% endif %};font-weight:600">
+                    {% if attendance_pct >= 75 %}<i class="bi bi-check-circle-fill"></i> Good Standing
+                    {% elif attendance_pct >= 60 %}<i class="bi bi-exclamation-triangle-fill"></i> Warning Zone
+                    {% else %}<i class="bi bi-x-circle-fill"></i> Critical – Action Required
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="card fade-in-up mt-3">
+            <div class="card-body" style="padding:16px">
+                {% set stats = [
+                ('CGPA', student.cgpa or '—', 'bi-award-fill', '#4f46e5'),
+                ('Year', 'Year ' ~ student.year, 'bi-calendar3', '#06b6d4'),
+                ('Section', student.section or '—', 'bi-grid-3x3-gap-fill', '#10b981'),
+                ('Department', student.department.name if student.department else '—', 'bi-building', '#f59e0b')
+                ] %}
+                {% for label, val, icon, color in stats %}
+                <div
+                    style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+                    <div
+                        style="width:34px;height:34px;border-radius:8px;background:{{ color }}20;display:flex;align-items:center;justify-content:center;color:{{ color }};font-size:15px">
+                        <i class="bi {{ icon }}"></i>
+                    </div>
+                    <div>
+                        <div
+                            style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em">
+                            {{ label }}</div>
+                        <div style="font-size:13.5px;font-weight:600">{{ val }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Details -->
+    <div class="col-lg-8">
+        <!-- Personal Info -->
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-person-vcard-fill"></i> Personal Information</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-item-label">Full Name</div>
+                        <div class="info-item-value">{{ student.full_name }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item-label">Email</div>
+                        <div class="info-item-value">{{ student.email }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item-label">Phone</div>
+                        <div class="info-item-value">{{ student.phone or '—' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item-label">Date of Birth</div>
+                        <div class="info-item-value">{{ student.dob.strftime('%d %B %Y') if student.dob else '—' }}
+                        </div>
+                    </div>
+                    <div class="info-item" style="grid-column:1/-1">
+                        <div class="info-item-label">Address</div>
+                        <div class="info-item-value">{{ student.address or '—' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guardian Info -->
+        <div class="card fade-in-up mt-3">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-person-hearts"></i> Guardian Information</h3>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-item-label">Guardian Name</div>
+                        <div class="info-item-value">{{ student.guardian_name or '—' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item-label">Guardian Phone</div>
+                        <div class="info-item-value">{{ student.guardian_phone or '—' }}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-item-label">Guardian Email</div>
+                        <div class="info-item-value">{{ student.guardian_email or '—' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subject-Wise Attendance Stats -->
+        {% if subject_stats %}
+        <div class="card fade-in-up mt-3">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-bar-chart-fill"></i> Subject-wise Attendance</h3>
+            </div>
+            <div class="card-body" style="padding: 16px 20px;">
+                {% for s in subject_stats %}
+                <div style="margin-bottom: 14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ s.subject }}</span>
+                        <span style="font-size: 12px; font-weight: 700; color: {% if s.pct >= 75 %}var(--success){% elif s.pct >= 60 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ s.pct }}%
+                        </span>
+                    </div>
+                    <div style="height: 7px; background: var(--bg-main); border-radius: 999px; overflow: hidden; border: 1px solid var(--border)">
+                        <div style="height: 100%; width: {{ s.pct }}%; background: {% if s.pct >= 75 %}var(--success){% elif s.pct >= 60 %}var(--warning){% else %}var(--danger){% endif %}; border-radius: 999px; transition: width 0.6s ease;"></div>
+                    </div>
+                    <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 3px;">
+                        {{ s.present }}/{{ s.total }} classes attended
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Daily 8-Period Heatmap Grid -->
+        {% if heatmap_data %}
+        <div class="card fade-in-up mt-3">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-grid-3x3-gap-fill"></i> Daily Period Heatmap</h3>
+                <span style="font-size: 11px; color: var(--text-muted);">Last {{ heatmap_data|length }} school days</span>
+            </div>
+            <div class="card-body" style="padding: 16px 20px; overflow-x: auto;">
+
+                <!-- Legend -->
+                <div style="display:flex; gap:12px; margin-bottom:14px; flex-wrap:wrap">
+                    {% for label, color in [('Present', '#10b981'), ('Absent', '#ef4444'), ('Late', '#f59e0b'), ('Lunch/Break', '#94a3b8'), ('Free/Not marked', '#e2e8f0')] %}
+                    <div style="display:flex; align-items:center; gap:5px">
+                        <div style="width: 12px; height: 12px; border-radius: 3px; background: {{ color }};"></div>
+                        <span style="font-size: 10.5px; color: var(--text-secondary);">{{ label }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Period Header Row -->
+                <div style="display: grid; grid-template-columns: 90px repeat(8, 1fr); gap: 4px; margin-bottom: 4px;">
+                    <div></div>
+                    {% for p in range(1, 9) %}
+                    <div style="text-align: center; font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">P{{ p }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Heatmap Rows -->
+                {% for day_data in heatmap_data %}
+                <div style="display: grid; grid-template-columns: 90px repeat(8, 1fr); gap: 4px; margin-bottom: 4px;">
+                    <div style="font-size: 10.5px; font-weight: 600; color: var(--text-secondary); display:flex; align-items:center;">
+                        <div>
+                            <div>{{ day_data.day_name[:3] }}</div>
+                            <div style="font-size: 9px; color: var(--text-muted);">{{ day_data.date.strftime('%d %b') }}</div>
+                        </div>
+                    </div>
+                    {% for cell in day_data.periods %}
+                    {% if cell.status == 'present' %}
+                        {% set cell_color = '#10b981' %}
+                        {% set cell_text_color = 'white' %}
+                    {% elif cell.status == 'absent' %}
+                        {% set cell_color = '#ef4444' %}
+                        {% set cell_text_color = 'white' %}
+                    {% elif cell.status == 'late' %}
+                        {% set cell_color = '#f59e0b' %}
+                        {% set cell_text_color = 'white' %}
+                    {% elif cell.status == 'lunch' %}
+                        {% set cell_color = '#94a3b8' %}
+                        {% set cell_text_color = 'white' %}
+                    {% else %}
+                        {% set cell_color = 'var(--bg-main)' %}
+                        {% set cell_text_color = 'var(--text-muted)' %}
+                    {% endif %}
+                    <div title="P{{ cell.period }} – {{ cell.subject }} ({{ cell.status.title() }})"
+                         style="height: 36px; border-radius: 6px; background: {{ cell_color }}; display:flex; align-items:center; justify-content:center; cursor:default; border: 1px solid var(--border); transition: transform 0.15s ease;"
+                         onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                        <span style="font-size: 9px; color: {{ cell_text_color }}; font-weight: 700;">
+                            {% if cell.status == 'present' %}✓
+                            {% elif cell.status == 'absent' %}✗
+                            {% elif cell.status == 'late' %}⏱
+                            {% elif cell.status == 'lunch' %}☕
+                            {% else %}—{% endif %}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Attendance Records -->
+        <div class="card fade-in-up mt-3">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-calendar2-check-fill"></i> Recent Attendance (Last 30)</h3>
+                {% if current_user.role == 'student' %}
+                <a href="{{ url_for('students.my_attendance') }}"
+                    style="font-size:12px;color:var(--primary);text-decoration:none">View All</a>
+                {% else %}
+                <a href="{{ url_for('attendance.view') }}"
+                    style="font-size:12px;color:var(--primary);text-decoration:none">View All</a>
+                {% endif %}
+            </div>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Period</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in attendance_records %}
+                        <tr>
+                            <td>{{ rec.date.strftime('%d %b %Y') }}</td>
+                            <td style="color:var(--text-muted); font-size:12px; font-weight:700">P{{ rec.period }}</td>
+                            <td>{{ rec.subject }}</td>
+                            <td><span class="badge-custom badge-{{ rec.status }}">{{ rec.status.title() }}</span></td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">No attendance
+                                records yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+    const pct = {{ attendance_pct }};
+    const color = pct >= 75 ? '#10b981' : pct >= 60 ? '#f59e0b' : '#ef4444';
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    new Chart(document.getElementById('attRing'), {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [pct, 100 - pct],
+                backgroundColor: [color, isDark ? '#2d2b4e' : '#f1f5f9'],
+                borderWidth: 0
+            }]
+        },
+        options: { responsive: false, cutout: '78%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+</script>
+{% endblock %}

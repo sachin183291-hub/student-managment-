@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header fade-in-up">
+    <div>
+        <h1 class="page-title">Analytics Dashboard</h1>
+        <p class="page-subtitle">Welcome back, {{ current_user.full_name }}! Here's what's happening.</p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('admin.seed_data') }}" class="btn-secondary-custom">
+            <i class="bi bi-database-fill-add"></i> Load Demo Data
+        </a>
+        {% endif %}
+        <a href="{{ url_for('students.add') }}" class="btn-primary-custom">
+            <i class="bi bi-person-plus-fill"></i> Add Student
+        </a>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card fade-in-up delay-1" style="--card-color:#4f46e5">
+            <div class="stat-icon purple"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_students }}</div>
+                <div class="stat-label">Total Active Students</div>
+                <div class="stat-badge"><i class="bi bi-graph-up"></i> All Enrolled</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card fade-in-up delay-2" style="--card-color:#06b6d4">
+            <div class="stat-icon cyan"><i class="bi bi-building-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ total_departments }}</div>
+                <div class="stat-label">Departments</div>
+                <div class="stat-badge" style="color:var(--secondary)"><i class="bi bi-check-circle"></i> Active</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card fade-in-up delay-3" style="--card-color:#10b981">
+            <div class="stat-icon green"><i class="bi bi-calendar2-check-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ today_present }}</div>
+                <div class="stat-label">Present Today</div>
+                <div class="stat-badge"><i class="bi bi-clock"></i> {{ today.strftime('%d %b') }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card fade-in-up delay-4" style="--card-color:#ef4444">
+            <div class="stat-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            <div class="stat-info">
+                <div class="stat-value">{{ low_attendance|length }}</div>
+                <div class="stat-label">Low Attendance (&lt;75%)</div>
+                <div class="stat-badge" style="color:var(--danger)"><i class="bi bi-arrow-down"></i> Needs Attention
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <!-- Attendance Trend -->
+    <div class="col-xl-8">
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-graph-up-arrow"></i> 30-Day Attendance Trend</h3>
+                <div style="display:flex;gap:12px;font-size:12px">
+                    <span style="display:flex;align-items:center;gap:5px"><span
+                            style="width:12px;height:12px;border-radius:3px;background:#4f46e5;display:inline-block"></span>Present</span>
+                    <span style="display:flex;align-items:center;gap:5px"><span
+                            style="width:12px;height:12px;border-radius:3px;background:#ef4444;display:inline-block"></span>Absent</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-wrapper">
+                    <canvas id="attendanceTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Department Pie -->
+    <div class="col-xl-4">
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-pie-chart-fill"></i> By Department</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-wrapper">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Year Bar + Low Attendance + Recent Students -->
+<div class="row g-3 mb-4">
+    <!-- Year Chart -->
+    <div class="col-xl-4">
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-bar-chart-fill"></i> Year-wise Students</h3>
+            </div>
+            <div class="card-body">
+                <div class="chart-wrapper" style="height:200px">
+                    <canvas id="yearChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Attendance Alert -->
+    <div class="col-xl-4">
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-exclamation-triangle-fill"></i> Low Attendance Alert</h3>
+                <a href="{{ url_for('attendance.report') }}"
+                    style="font-size:12px;color:var(--primary);text-decoration:none">View All</a>
+            </div>
+            <div class="card-body" style="padding:12px">
+                {% if low_attendance %}
+                {% for item in low_attendance %}
+                <div
+                    style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg-main)">
+                    <div class="student-avatar-sm" style="background:linear-gradient(135deg,#ef4444,#f97316)">{{
+                        item.student.full_name[0] }}</div>
+                    <div style="flex:1;min-width:0">
+                        <div
+                            style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                            {{ item.student.full_name }}</div>
+                        <div class="att-bar">
+                            <div class="att-bar-fill danger" style="width:{{ item.pct }}%"></div>
+                        </div>
+                    </div>
+                    <div style="font-size:13px;font-weight:700;color:var(--danger)">{{ item.pct }}%</div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="text-align:center;padding:20px;color:var(--text-muted)">
+                    <i class="bi bi-check-circle"
+                        style="font-size:32px;color:var(--success);display:block;margin-bottom:8px"></i>
+                    All students have good attendance!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Students -->
+    <div class="col-xl-4">
+        <div class="card fade-in-up">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-person-lines-fill"></i> Recently Added</h3>
+                <a href="{{ url_for('students.index') }}"
+                    style="font-size:12px;color:var(--primary);text-decoration:none">View All</a>
+            </div>
+            <div class="card-body" style="padding:12px">
+                {% for s in recent_students %}
+                <a href="{{ url_for('students.view', student_id=s.id) }}" style="text-decoration:none">
+                    <div style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;margin-bottom:6px;background:var(--bg-main);transition:background 0.2s"
+                        onmouseover="this.style.background='var(--bg-card-hover)'"
+                        onmouseout="this.style.background='var(--bg-main)'">
+                        <div class="student-avatar-sm">{{ s.full_name[0] }}</div>
+                        <div style="flex:1;min-width:0">
+                            <div
+                                style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                {{ s.full_name }}</div>
+                            <div style="font-size:11px;color:var(--text-muted)">{{ s.roll_number }} · Year {{ s.year }}
+                            </div>
+                        </div>
+                        <span class="badge-custom badge-active" style="font-size:10px">{{ s.status }}</span>
+                    </div>
+                </a>
+                {% else %}
+                <div style="text-align:center;padding:20px;color:var(--text-muted)">No students yet</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card fade-in-up">
+    <div class="card-header">
+        <h3 class="card-title"><i class="bi bi-activity"></i> Recent Activity Log</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th>IP</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td><span
+                            class="badge-custom badge-{{ 'active' if 'LOGIN' in log.action else 'inactive' if 'LOGOUT' in log.action else 'graduated' }}">{{
+                            log.action }}</span></td>
+                    <td style="color:var(--text-secondary)">{{ log.details or '—' }}</td>
+                    <td style="font-family:monospace;font-size:12px;color:var(--text-muted)">{{ log.ip_address or '—' }}
+                    </td>
+                    <td style="color:var(--text-muted);font-size:12px">{{ log.timestamp.strftime('%d %b %Y, %I:%M %p')
+                        if log.timestamp else '—' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align:center;color:var(--text-muted);padding:30px">No activity recorded
+                        yet</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    Chart.defaults.color = textColor;
+    Chart.defaults.borderColor = gridColor;
+
+    // 30-Day Trend
+    new Chart(document.getElementById('attendanceTrendChart'), {
+        type: 'line',
+        data: {
+            labels: {{ chart_labels | tojson }},
+        datasets: [
+        { label: 'Present', data: {{ chart_present | tojson }}, borderColor: '#4f46e5', backgroundColor: 'rgba(79,70,229,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6 },
+        { label: 'Absent', data: {{ chart_absent | tojson }}, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.06)', fill: true, tension: 0.4, pointRadius: 3, pointHoverRadius: 6 }
+    ]
+  },
+        options: {
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: {
+                x: { grid: { color: gridColor }, ticks: { maxRotation: 45, font: { size: 10 } } },
+                y: { grid: { color: gridColor }, beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+    }
+});
+
+    // Department Doughnut
+    new Chart(document.getElementById('deptChart'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ dept_labels | tojson }},
+        datasets: [{ data: {{ dept_counts | tojson }}, backgroundColor: ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'], borderWidth: 0, hoverOffset: 8 }]
+  },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, boxWidth: 12 } } } }
+});
+
+    // Year Bar
+    new Chart(document.getElementById('yearChart'), {
+        type: 'bar',
+        data: {
+            labels: {{ year_labels | tojson }},
+        datasets: [{ label: 'Students', data: {{ year_counts | tojson }}, backgroundColor: ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b'], borderRadius: 6 }]
+  },
+        options: {
+            responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: gridColor }, beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+    }
+});
+</script>
+{% endblock %}
