@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from extensions import db
-from models import Student, Department, Attendance
+from models import Student, Department, Attendance, User
 from datetime import datetime, date
 import json
 
@@ -113,7 +113,6 @@ def add():
         db.session.commit()
 
         # Auto-create User account for the new student
-        from models import User
         from werkzeug.security import generate_password_hash
         user = User(
             username=roll_number,

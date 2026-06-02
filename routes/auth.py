@@ -37,7 +37,8 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and check_password_hash(user.password_hash, password) and user.is_active_user:
-            login_user(user, remember=bool(remember))
+            login_user(user, remember=True)  # Always remember to survive Vercel container restarts
+            session.permanent = True         # Mark session as permanent (7-day lifetime)
             log_activity(user.id, 'LOGIN', f'User {username} logged in', request.remote_addr)
             flash(f'Welcome back, {user.full_name}!', 'success')
             next_page = request.args.get('next')
@@ -68,7 +69,8 @@ def student_login():
         user = User.query.filter_by(username=username, role='student').first()
         
         if user and check_password_hash(user.password_hash, password) and user.is_active_user:
-            login_user(user, remember=bool(remember))
+            login_user(user, remember=True)  # Always remember on Vercel
+            session.permanent = True
             log_activity(user.id, 'LOGIN', f'Student {username} logged in', request.remote_addr)
             flash(f'Welcome back, {user.full_name}!', 'success')
             next_page = request.args.get('next')

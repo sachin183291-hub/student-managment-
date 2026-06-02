@@ -220,13 +220,5 @@ def view():
 @attendance_bp.route('/report')
 @login_required
 def report():
-    students = Student.query.filter_by(status='active').order_by(Student.roll_number).all()
-    report_data = []
-    for s in students:
-        pct = s.get_attendance_percentage()
-        report_data.append({
-            'student': s,
-            'pct': pct,
-            'status': 'Good' if pct >= 75 else ('Warning' if pct >= 60 else 'Critical')
-        })
-    return render_template('attendance/report.html', report_data=report_data)
+    # Redirect to the main reports module which has proper RBAC and calculates risk correctly
+    return redirect(url_for('reports.attendance_report'))

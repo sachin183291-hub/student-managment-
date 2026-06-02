@@ -72,7 +72,7 @@ def attendance_report():
             'risk': 'High' if pct < 60 else ('Medium' if pct < 75 else 'Low')
         })
     report_data.sort(key=lambda x: x['pct'])
-    return render_template('reports/attendance.html', report_data=report_data)
+    return render_template('attendance/report.html', report_data=report_data)
 
 @reports_bp.route('/download-pdf')
 @login_required

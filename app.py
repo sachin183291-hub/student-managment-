@@ -10,8 +10,8 @@ def create_app():
     # Fix for Vercel/Reverse Proxies to correctly generate HTTPS URLs and handle redirects
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
     
-    # Configuration
-    app.config['SECRET_KEY'] = 'smart_student_portal_secret_2024_#@!'
+    # Configuration - Read SECRET_KEY from env var (critical for session persistence on Vercel)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'smart_student_portal_secret_2024_#@!')
     
     database_url = os.environ.get('DATABASE_URL')
     if database_url:
@@ -25,11 +25,17 @@ def create_app():
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
         
-    # Cookie/Session persistence settings for Vercel
-    if os.environ.get('VERCEL') == '1':
+    # Session/Cookie configuration - critical for Vercel serverless
+    is_vercel = os.environ.get('VERCEL') == '1' or os.environ.get('DATABASE_URL') is not None
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    if is_vercel:
         app.config['SESSION_COOKIE_SECURE'] = True
-        app.config['SESSION_COOKIE_HTTPONLY'] = True
-        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    else:
+        app.config['SESSION_COOKIE_SECURE'] = False
+    # Make sessions permanent with a long lifetime to survive serverless restarts
+    from datetime import timedelta
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
         
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
