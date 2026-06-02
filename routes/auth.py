@@ -20,7 +20,7 @@ def index():
         if current_user.role == 'teacher' and (current_user.department_id is None or current_user.year is None):
             return redirect(url_for('auth.teacher_setup'))
         return redirect(url_for('dashboard.index'))
-    return render_template('auth/landing.html')
+    return redirect(url_for('auth.login'))
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -54,33 +54,6 @@ def login():
     
     return render_template('auth/login.html')
 
-@auth_bp.route('/student-login', methods=['GET', 'POST'])
-def student_login():
-    if current_user.is_authenticated:
-        if current_user.role == 'student':
-            return redirect(url_for('students.view', student_id=current_user.student_id))
-        return redirect(url_for('dashboard.index'))
-    
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
-        remember = request.form.get('remember', False)
-
-        user = User.query.filter_by(username=username, role='student').first()
-        
-        if user and check_password_hash(user.password_hash, password) and user.is_active_user:
-            login_user(user, remember=True)  # Always remember on Vercel
-            session.permanent = True
-            log_activity(user.id, 'LOGIN', f'Student {username} logged in', request.remote_addr)
-            flash(f'Welcome back, {user.full_name}!', 'success')
-            next_page = request.args.get('next')
-            if next_page:
-                return redirect(next_page)
-            return redirect(url_for('students.view', student_id=user.student_id))
-        else:
-            flash('Invalid student credentials. Please try again.', 'danger')
-    
-    return render_template('auth/student_login.html')
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':

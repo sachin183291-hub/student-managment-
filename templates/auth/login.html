@@ -11,8 +11,8 @@
                 <span class="logo-sub">Student Management Portal</span>
             </div>
         </div>
-        <h1 class="auth-title">Staff / Teacher Login 👋</h1>
-        <p class="auth-sub">Sign in to access your dashboard</p>
+        <h1 class="auth-title">Login 🎓</h1>
+        <p class="auth-sub">Sign in to access your portal</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -27,11 +27,11 @@
 
         <form method="POST" class="auth-form">
             <div class="form-group">
-                <label class="form-label">Username</label>
+                <label class="form-label">Username / Roll Number</label>
                 <div style="position:relative">
                     <i class="bi bi-person"
                         style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.4)"></i>
-                    <input type="text" name="username" class="form-control-custom" placeholder="Enter your username"
+                    <input type="text" name="username" class="form-control-custom" placeholder="e.g. admin or 2024CSE001"
                         style="padding-left:36px" required />
                 </div>
             </div>
@@ -58,9 +58,7 @@
             </button>
         </form>
 
-        <div class="auth-link">
-            Are you a Student? <a href="{{ url_for('auth.student_login') }}">Student Login</a>
-        </div>
+
         <div class="auth-link mt-2">
             Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a>
         </div>
