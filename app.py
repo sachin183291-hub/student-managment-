@@ -28,11 +28,20 @@ def create_app():
     # Session/Cookie configuration - critical for Vercel serverless
     is_vercel = os.environ.get('VERCEL') == '1' or os.environ.get('DATABASE_URL') is not None
     app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    # Use 'None' with SECURE=True for cross-site form submissions on Vercel
+    # Use 'Lax' for local development without HTTPS
     if is_vercel:
         app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for form submissions on Vercel
     else:
         app.config['SESSION_COOKIE_SECURE'] = False
+        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    
+    # Configure session cookies for proper persistence
+    app.config['SESSION_COOKIE_PATH'] = '/'
+    # Refresh session on each request to prevent expiration during interactions
+    app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+    
     # Make sessions permanent with a long lifetime to survive serverless restarts
     from datetime import timedelta
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
@@ -77,9 +86,13 @@ def create_app():
     # Force teacher setup if not configured
     @app.before_request
     def force_teacher_setup():
-        from flask import request, redirect, url_for
+        from flask import request, redirect, url_for, session
         from flask_login import current_user
         
+        # Mark session as permanent for all authenticated users (ensures persistence on Vercel)
+        if current_user.is_authenticated:
+            session.permanent = True
+            
         if current_user.is_authenticated:
             if current_user.role == 'student' and not current_user.password_changed:
                 allowed_endpoints = ['auth.force_password_change', 'auth.logout', 'auth.set_theme', 'static']
