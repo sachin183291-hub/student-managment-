@@ -81,6 +81,8 @@ def login():
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
+    departments = Department.query.all()
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         email = request.form.get('email', '').strip()
@@ -88,26 +90,37 @@ def register():
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
         role = request.form.get('role', 'teacher')
+        
+        # Teacher specific fields
+        department_id = request.form.get('department_id', '').strip()
+        year = request.form.get('year', '').strip()
+        section = request.form.get('section', '').strip().upper()
 
         if not all([username, email, full_name, password]):
             flash('All fields are required.', 'danger')
-            return render_template('auth/register.html')
+            return render_template('auth/register.html', departments=departments)
 
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
-            return render_template('auth/register.html')
+            return render_template('auth/register.html', departments=departments)
 
         if len(password) < 8:
             flash('Password must be at least 8 characters.', 'danger')
-            return render_template('auth/register.html')
+            return render_template('auth/register.html', departments=departments)
 
         if User.query.filter_by(username=username).first():
             flash('Username already exists.', 'danger')
-            return render_template('auth/register.html')
+            return render_template('auth/register.html', departments=departments)
 
         if User.query.filter_by(email=email).first():
             flash('Email already registered.', 'danger')
-            return render_template('auth/register.html')
+            return render_template('auth/register.html', departments=departments)
+
+        # Validate teacher requirements
+        if role == 'teacher':
+            if not department_id or not year or not section:
+                flash('Teachers must provide Department, Year, and Section.', 'danger')
+                return render_template('auth/register.html', departments=departments)
 
         user = User(
             username=username,
@@ -116,13 +129,25 @@ def register():
             password_hash=generate_password_hash(password),
             role=role
         )
+        
+        # Set teacher configuration if teacher role
+        if role == 'teacher':
+            user.department_id = int(department_id)
+            user.year = int(year)
+            user.section = section
+        
         db.session.add(user)
         db.session.commit()
+        
         log_activity(user.id, 'REGISTER', f'New user registered: {username}')
-        flash('Account created successfully! Please login.', 'success')
+        if role == 'teacher':
+            log_activity(user.id, 'TEACHER_SETUP', f'Teacher configured during registration: dept={department_id}, year={year}, section={section}')
+            flash('Account created successfully with class configuration! Please login.', 'success')
+        else:
+            flash('Account created successfully! Please login.', 'success')
         return redirect(url_for('auth.login'))
 
-    return render_template('auth/register.html')
+    return render_template('auth/register.html', departments=departments)
 
 @auth_bp.route('/logout')
 @login_required
