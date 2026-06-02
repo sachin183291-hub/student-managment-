@@ -28,17 +28,21 @@ def create_app():
     # Session/Cookie configuration - critical for Vercel serverless
     is_vercel = os.environ.get('VERCEL') == '1' or os.environ.get('DATABASE_URL') is not None
     app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_NAME'] = 'student_portal_session'
+    app.config['SESSION_COOKIE_PATH'] = '/'
+    
     # Use 'None' with SECURE=True for cross-site form submissions on Vercel
     # Use 'Lax' for local development without HTTPS
     if is_vercel:
         app.config['SESSION_COOKIE_SECURE'] = True
         app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # Required for form submissions on Vercel
+        # Don't restrict to domain on Vercel (allows .vercel.app domain to work)
+        app.config['SESSION_COOKIE_DOMAIN'] = None
     else:
         app.config['SESSION_COOKIE_SECURE'] = False
         app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+        app.config['SESSION_COOKIE_DOMAIN'] = None
     
-    # Configure session cookies for proper persistence
-    app.config['SESSION_COOKIE_PATH'] = '/'
     # Refresh session on each request to prevent expiration during interactions
     app.config['SESSION_REFRESH_EACH_REQUEST'] = True
     
@@ -61,10 +65,23 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
+    login_manager.login_message = 'Please login to access this page.'
+    login_manager.login_message_category = 'info'
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        try:
+            return User.query.get(int(user_id))
+        except:
+            return None
+    
+    # Custom unauthorized handler to improve session handling
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        from flask import session, request
+        # Clear any corrupted session data
+        session.clear()
+        return redirect(url_for('auth.login', next=request.referrer or url_for('auth.login')))
 
     # Register Blueprints
     from routes.auth import auth_bp
@@ -85,22 +102,32 @@ def create_app():
 
     # Force teacher setup if not configured
     @app.before_request
-    def force_teacher_setup():
+    def maintain_session():
         from flask import request, redirect, url_for, session
         from flask_login import current_user
         
-        # Mark session as permanent for all authenticated users (ensures persistence on Vercel)
+        # Critical: Mark session as permanent for ALL authenticated requests
+        # This ensures the session cookie persists on Vercel serverless
         if current_user.is_authenticated:
             session.permanent = True
+            # Force session modification to ensure cookie is set
+            session.modified = True
             
-        if current_user.is_authenticated:
+            # Verify user still exists in DB (handles deleted accounts)
+            user = User.query.get(current_user.id)
+            if not user or not user.is_active_user:
+                from flask_login import logout_user
+                logout_user()
+                return redirect(url_for('auth.login'))
+            
+            # Handle student password change requirement
             if current_user.role == 'student' and not current_user.password_changed:
                 allowed_endpoints = ['auth.force_password_change', 'auth.logout', 'auth.set_theme', 'static']
                 if request.endpoint not in allowed_endpoints and not request.path.startswith('/static/'):
                     return redirect(url_for('auth.force_password_change'))
 
+            # Handle teacher setup requirement (if not already configured)
             if current_user.role == 'teacher':
-                # Allow access to setup page, logout, theme switching, and static assets
                 allowed_endpoints = ['auth.teacher_setup', 'auth.logout', 'auth.set_theme', 'static']
                 if request.endpoint not in allowed_endpoints and not request.path.startswith('/static/'):
                     if current_user.department_id is None or current_user.year is None or not current_user.section:
