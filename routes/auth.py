@@ -156,6 +156,14 @@ def teacher_setup():
             user.section = section
             db.session.add(user)
             db.session.commit()
+            
+            # Refresh the current_user object to reflect DB changes
+            # Critical for Vercel serverless where new container instances may not have updated session data
+            db.session.refresh(user)
+            
+            # Mark session as modified to ensure it's saved with updated user data
+            session.modified = True
+            
             log_activity(current_user.id, 'TEACHER_SETUP', f'Teacher configured: dept={department_id}, year={year}, section={section}')
             flash(f'Class configured: Year {year} Section {section}. Welcome to your dashboard!', 'success')
             return redirect(url_for('dashboard.index'))
