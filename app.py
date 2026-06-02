@@ -2,10 +2,14 @@ from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 from extensions import db, login_manager
 from models import User
+from flask_wtf.csrf import CSRFProtect
 import os
 
 def create_app():
     app = Flask(__name__)
+    
+    # Initialize CSRF protection for better session security
+    csrf = CSRFProtect(app)
     
     # Fix for Vercel/Reverse Proxies to correctly generate HTTPS URLs and handle redirects
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
