@@ -29,10 +29,18 @@ def login():
             return redirect(url_for('students.view', student_id=current_user.student_id))
         return redirect(url_for('dashboard.index'))
     
+    # Get all departments for the form
+    departments = Department.query.all()
+    
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         remember = request.form.get('remember', False)
+        
+        # Get optional teacher setup fields
+        department_id = request.form.get('department_id', '').strip()
+        year = request.form.get('year', '').strip()
+        section = request.form.get('section', '').strip().upper()
 
         user = User.query.filter_by(username=username).first()
         
@@ -40,7 +48,24 @@ def login():
             login_user(user, remember=True)  # Always remember to survive Vercel container restarts
             session.permanent = True         # Mark session as permanent (7-day lifetime)
             log_activity(user.id, 'LOGIN', f'User {username} logged in', request.remote_addr)
-            flash(f'Welcome back, {user.full_name}!', 'success')
+            
+            # If it's a teacher and they provided class configuration, save it
+            if user.role == 'teacher' and department_id and year and section:
+                user.department_id = int(department_id)
+                user.year = int(year)
+                user.section = section
+                db.session.add(user)
+                db.session.commit()
+                
+                # Clear cache to ensure fresh user data
+                db.session.expire_all()
+                session.modified = True
+                
+                log_activity(user.id, 'TEACHER_SETUP', f'Teacher configured: dept={department_id}, year={year}, section={section}')
+                flash(f'Welcome! Class configured: Year {year} Section {section}.', 'success')
+            else:
+                flash(f'Welcome back, {user.full_name}!', 'success')
+            
             next_page = request.args.get('next')
             if next_page:
                 return redirect(next_page)
@@ -52,7 +77,7 @@ def login():
         else:
             flash('Invalid credentials. Please try again.', 'danger')
     
-    return render_template('auth/login.html')
+    return render_template('auth/login.html', departments=departments)
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():

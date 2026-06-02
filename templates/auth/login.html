@@ -48,6 +48,38 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Teacher Class Configuration (hidden by default) -->
+            <div id="teacherSetupSection" style="display:none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; margin-top: 15px;">
+                <p style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:12px">
+                    <i class="bi bi-info-circle"></i> Teacher? Configure your class below:
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <select name="department_id" id="department_id" class="form-control-custom" style="padding-left:12px">
+                        <option value="">-- Select Department --</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ dept.name }} ({{ dept.code }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Year</label>
+                    <select name="year" id="year" class="form-control-custom" style="padding-left:12px">
+                        <option value="">-- Select Year --</option>
+                        <option value="1">Year 1</option>
+                        <option value="2">Year 2</option>
+                        <option value="3">Year 3</option>
+                        <option value="4">Year 4</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Section (Class)</label>
+                    <input type="text" name="section" id="section" class="form-control-custom" placeholder="e.g. A, B, C"
+                        style="padding-left:12px" />
+                </div>
+            </div>
+
             <div class="form-group" style="display:flex;align-items:center;gap:8px">
                 <input type="checkbox" name="remember" id="remember" style="accent-color:var(--primary)" />
                 <label for="remember" style="font-size:12.5px;color:rgba(255,255,255,0.6);cursor:pointer">Remember
@@ -74,5 +106,40 @@
         f.type = f.type === 'password' ? 'text' : 'password';
         i.className = f.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
     }
+
+    // Check if username is a teacher and show/hide setup fields
+    document.addEventListener('DOMContentLoaded', function() {
+        const usernameInput = document.querySelector('input[name="username"]');
+        
+        usernameInput.addEventListener('blur', async function() {
+            const username = this.value.trim();
+            if (!username) {
+                document.getElementById('teacherSetupSection').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/check-user-role/${username}`);
+                const data = await response.json();
+                
+                if (data.role === 'teacher') {
+                    document.getElementById('teacherSetupSection').style.display = 'block';
+                    // Make department and year required for teachers
+                    document.getElementById('department_id').required = true;
+                    document.getElementById('year').required = true;
+                    document.getElementById('section').required = true;
+                } else {
+                    document.getElementById('teacherSetupSection').style.display = 'none';
+                    // Make them optional for non-teachers
+                    document.getElementById('department_id').required = false;
+                    document.getElementById('year').required = false;
+                    document.getElementById('section').required = false;
+                }
+            } catch (error) {
+                console.log('Could not determine user role');
+                document.getElementById('teacherSetupSection').style.display = 'none';
+            }
+        });
+    });
 </script>
 {% endblock %}

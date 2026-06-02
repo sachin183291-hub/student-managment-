@@ -1,10 +1,19 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from extensions import db
-from models import Student, Attendance, Department
+from models import Student, Attendance, Department, User
 from datetime import datetime, date
 
 api_bp = Blueprint('api', __name__)
+
+# Public endpoint to check user role (for login form)
+@api_bp.route('/check-user-role/<username>', methods=['GET'])
+def check_user_role(username):
+    """Check if a user exists and return their role"""
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify({'success': True, 'role': user.role, 'exists': True})
+    return jsonify({'success': False, 'role': None, 'exists': False})
 
 def student_to_dict(s):
     return {
