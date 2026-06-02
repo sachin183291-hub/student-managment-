@@ -25,6 +25,12 @@ def create_app():
     else:
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
         
+    # Cookie/Session persistence settings for Vercel
+    if os.environ.get('VERCEL') == '1':
+        app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['SESSION_COOKIE_HTTPONLY'] = True
+        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+        
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
     
