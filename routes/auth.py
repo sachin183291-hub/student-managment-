@@ -157,11 +157,11 @@ def teacher_setup():
             db.session.add(user)
             db.session.commit()
             
-            # Refresh the current_user object to reflect DB changes
-            # Critical for Vercel serverless where new container instances may not have updated session data
-            db.session.refresh(user)
+            # CRITICAL: Refresh the database session to clear the cache
+            # This ensures Flask-Login will load fresh data on the next request
+            db.session.expire_all()
             
-            # Mark session as modified to ensure it's saved with updated user data
+            # Mark session as modified to ensure persistence
             session.modified = True
             
             log_activity(current_user.id, 'TEACHER_SETUP', f'Teacher configured: dept={department_id}, year={year}, section={section}')
