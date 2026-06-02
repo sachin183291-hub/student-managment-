@@ -26,6 +26,7 @@
         {% endwith %}
 
         <form method="POST" action="{{ url_for('auth.teacher_setup') }}" class="auth-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <div class="form-group">
                 <label class="form-label">Department</label>
                 <select name="department_id" class="form-control-custom" style="padding-left:12px" required>

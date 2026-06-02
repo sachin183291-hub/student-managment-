@@ -114,6 +114,7 @@
                             {% if current_user.role == 'admin' %}
                             <form method="POST" action="{{ url_for('students.delete', student_id=student.id) }}"
                                 style="display:inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 <button type="submit" class="btn-action delete confirm-delete" title="Delete"><i
                                         class="bi bi-trash-fill"></i></button>
                             </form>

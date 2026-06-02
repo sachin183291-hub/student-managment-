@@ -178,6 +178,7 @@
 <!-- Step 3: Student Attendance Grid -->
 <form method="POST" id="attendanceForm" class="mark-workspace">
   <!-- Hidden form inputs -->
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
   <input type="hidden" name="department_id" id="formDept" />
   <input type="hidden" name="year" id="formYear" />
   <input type="hidden" name="date" id="formDate" />

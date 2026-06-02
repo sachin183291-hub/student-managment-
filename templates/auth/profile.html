@@ -25,6 +25,7 @@
     </div>
     <div class="card-body">
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <div class="form-group">
                 <label class="form-label">Full Name</label>
                 <input type="text" name="full_name" class="form-control-custom" value="{{ current_user.full_name }}" />
