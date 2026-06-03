@@ -6,3 +6,6 @@ instance/
 .gemini/
 .idea/
 .vscode/
+.env
+*.db
+.DS_Store
